@@ -1,66 +1,77 @@
-# kakoune-cscope 0.1
+# kakoune-cscope 0.2
 # Author: @dryvenn
 # License: MIT
 
-declare-option -hidden str-list cscope_files 'cscope.out'
+define-command -docstring 'cscope-index [dir]...: index these directories' \
+        -params ..  -file-completion \
+        cscope-index %{ %sh{
+                [ $# == 0 ] && dirs="." || dirs="$*"
+                cscope -R -q -u -b -s $(echo "$dirs" | sed 's/ / -s /g')
+        }}
 
-define-command -docstring 'cscope-add <file>: add an index to the list' \
-        -params 1 -file-completion \
-        cscope-add %{
-                set-option global cscope_files %sh{
-                echo $kak_opt_cscope_files:$1 | tr ':' '\n' |
-                sort -u | xargs readlink -e | paste -sd ':'
+define-command -docstring 'cscope [query] [pattern]: cscope lookup
+Query: a digit as below
+    0 - Find this C symbol
+    1 - Find this function definition
+    2 - Find functions called by this function
+    3 - Find functions calling this function
+    4 - Find this text string
+    6 - Find this egrep pattern
+    7 - Find this file
+    8 - Find files #including this file
+    9 - Find assignments to this symbol
+Pattern: either supplied or the main selection
+        ' \
+        -params ..2 \
+        cscope %{ %sh{
+            fatal() {
+                echo "echo -markup \"{Error}$*\""
+                exit
             }
-        }
+            pad_as_line() {
+                printf "%-${kak_window_width}.${kak_window_width}s" "$*"
+            }
 
-define-command -docstring 'cscope-build <dir>: build an index and add it' \
-        -params 1 -file-completion \
-        cscope-build %{ %sh{
-                if [ ! -d "$1" ]
+            if [ $# == 1 ]
+            then
+                if [ $(expr length "$1") == 1 ]
                 then
-                        printf "fail %s" "Not a directory!"
+                    cmd="$1"
+                else
+                    qry="$1"
                 fi
-                cd $1
-                cscope -R -q -u -b
-                printf "cscope-add %s" $1/cscope.out
-        }}
+            elif [ $# == 2 ]
+            then
+                cmd="$1"
+                qry="$2"
+            fi
 
-define-command -docstring 'cscope-clear: clear the index list' \
-        cscope-clear %{
-                set-option global cscope_files ''
-        }
+            qry=${qry:-$(echo "$kak_selection" | awk 'NR==1{print $1}')}
+            [ ! "$qry" ] && fatal 'No query'
 
-define-command -docstring 'cscope-find <query> [pattern]: find using cscope indexes
-Query:
-  0 - Find this C symbol
-  1 - Find this function definition
-  2 - Find functions called by this function
-  3 - Find functions calling this function
-  4 - Find this text string
-  6 - Find this egrep pattern
-  7 - Find this file
-  8 - Find files #including this file
-  9 - Find assignments to this symbol
+            if [ ! "$cmd" ]
+            then
+                echo menu \
+                "\"$(pad_as_line '0 - Find this C symbol                    ')\"" "\"cscope 0 $qry\"" \
+                "\"$(pad_as_line '1 - Find this function definition         ')\"" "\"cscope 1 $qry\"" \
+                "\"$(pad_as_line '2 - Find functions called by this function')\"" "\"cscope 2 $qry\"" \
+                "\"$(pad_as_line '3 - Find functions calling this function  ')\"" "\"cscope 3 $qry\"" \
+                "\"$(pad_as_line '4 - Find this text string                 ')\"" "\"cscope 4 $qry\"" \
+                "\"$(pad_as_line '6 - Find this egrep pattern               ')\"" "\"cscope 6 $qry\"" \
+                "\"$(pad_as_line '7 - Find this file                        ')\"" "\"cscope 7 $qry\"" \
+                "\"$(pad_as_line '8 - Find files #including this file       ')\"" "\"cscope 8 $qry\"" \
+                "\"$(pad_as_line '9 - Find assignments to this symbol       ')\"" "\"cscope 9 $qry\""
+                exit
+            fi
 
-Pattern:
-  depends on the query, either specified or the current selection
-' \
-        -params 1..2 \
-        cscope-find %{ %sh{
-                query=$1
-                pattern=${2:-${kak_selection}}
-                result=$(echo $kak_opt_cscope_files | tr ':' '\n' |
-                while read file
-                do
-                        cscope -R -q -f $file -L$query $pattern
-                done)
-                if [ ! "$result" ]
-                then
-                        printf 'fail %s' "No match!"
-                        exit 1
-                fi
-                result=$(echo "$result" | fzf-tmux -d 20% -- -1 -0)
-                file=$(echo $result | cut -d ' ' -f 1)
-                line=$(echo $result | cut -d ' ' -f 3)
-                printf "edit! %s %s" "$file" "$line"
-        }}
+            res="$(cscope -d -L -${cmd}${qry})"
+            [ ! "$res" ] && fatal 'No result' $cmd $qry
+
+            printf 'menu -auto-single'
+            echo "$res" | while read line
+            do
+                printf " \"$(pad_as_line %s)\"" "$line"
+                echo $line | awk '{printf " \"edit! %s %s\"", $1, $3}'
+            done
+            echo
+    }}
