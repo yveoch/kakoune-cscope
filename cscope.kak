@@ -35,15 +35,15 @@ Pattern: either supplied or the main selection
                 printf "%-${kak_window_width}.${kak_window_width}s" "$*"
             }
 
-            if [ $# == 1 ]
+            if [ $# -eq 1 ]
             then
-                if [ $(expr length "$1") == 1 ]
+                if [ $(expr length "$1") -eq 1 ]
                 then
                     cmd="$1"
                 else
                     qry="$1"
                 fi
-            elif [ $# == 2 ]
+            elif [ $# -eq 2 ]
             then
                 cmd="$1"
                 qry="$2"
