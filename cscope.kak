@@ -2,8 +2,11 @@
 # Author: @dryvenn
 # License: MIT
 
-define-command -docstring 'cscope-index [dir]...: index these directories' \
-        -params ..  -file-completion \
+define-command -docstring 'cscope-index <dir>...: index the given directories
+Create a cscope index for the given source directories. It is not mandatory to
+do so with this command, one can also do it manually.
+        ' \
+        -params 1..  -file-completion \
         cscope-index %{ %sh{
                 [ $# == 0 ] && dirs="." || dirs="$*"
                 cscope -R -q -u -b -s $(echo "$dirs" | sed 's/ / -s /g')
