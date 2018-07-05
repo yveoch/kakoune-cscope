@@ -22,6 +22,8 @@ Will default to current directory.
             echo "$dirs" > cscope.dirs
 
             cscope $opts -s $(echo "$dirs" | sed 's/ / -s /g')
+
+            echo "echo Indexed $dirs"
         }}
 
 define-command -docstring 'cscope <query> [pattern]: cscope lookup
