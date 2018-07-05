@@ -1,15 +1,27 @@
-# kakoune-cscope 0.3
+# kakoune-cscope 0.4
 # Author: @dryvenn
 # License: MIT
 
-define-command -docstring 'cscope-index <dir>...: index the given directories
+define-command -docstring 'cscope-index [dir]...: index the given directories
 Create a cscope index for the given source directories. It is not mandatory to
 do so with this command, one can also do it manually.
+Will create a cache of the directory names in ./cscope.dirs so that subsequent
+invocations can omit them.
+Will default to current directory.
         ' \
-        -params 1..  -file-completion \
+        -params ..  -file-completion \
         cscope-index %{ %sh{
-                [ $# == 0 ] && dirs="." || dirs="$*"
-                cscope -R -q -u -b -s $(echo "$dirs" | sed 's/ / -s /g')
+            opts="-R -q -b"
+            dirs="$*"
+            dirs="${dirs:-$(cat cscope.dirs)}"
+            dirs="${dirs:-.}"
+
+            dirs=$(bash -c "echo $dirs")
+
+            [ "$dirs" != "$(cat cscope.dirs)" ] && opts="$opts -u"
+            echo "$dirs" > cscope.dirs
+
+            cscope $opts -s $(echo "$dirs" | sed 's/ / -s /g')
         }}
 
 define-command -docstring 'cscope <query> [pattern]: cscope lookup
