@@ -1,4 +1,4 @@
-# kakoune-cscope 0.4
+# kakoune-cscope 0.5
 # Author: @dryvenn
 # License: MIT
 
@@ -8,23 +8,23 @@ do so with this command, one can also do it manually.
 Will create a cache of the directory names in ./cscope.dirs so that subsequent
 invocations can omit them.
 Will default to current directory.
-        ' \
-        -params ..  -file-completion \
-        cscope-index %{ %sh{
-            opts="-R -q -b"
-            dirs="$*"
-            dirs="${dirs:-$(cat cscope.dirs)}"
-            dirs="${dirs:-.}"
+    ' \
+    -params ..  -file-completion \
+    cscope-index %{ evaluate-commands %sh{
+        opts="-R -q -b"
+        dirs="$*"
+        dirs="${dirs:-$(cat cscope.dirs)}"
+        dirs="${dirs:-.}"
 
-            dirs=$(bash -c "echo $dirs")
+        dirs=$(bash -c "echo $dirs")
 
-            [ "$dirs" != "$(cat cscope.dirs)" ] && opts="$opts -u"
-            echo "$dirs" > cscope.dirs
+        [ "$dirs" != "$(cat cscope.dirs)" ] && opts="$opts -u"
+        echo "$dirs" > cscope.dirs
 
-            cscope $opts -s $(echo "$dirs" | sed 's/ / -s /g')
+        cscope $opts -s $(echo "$dirs" | sed 's/ / -s /g')
 
-            echo "echo Indexed $dirs"
-        }}
+        echo "echo Indexed $dirs"
+    }}
 
 define-command -docstring 'cscope <query> [pattern]: cscope lookup
 Query: a digit as below
@@ -38,26 +38,26 @@ Query: a digit as below
     8 - Find files #including this file
     9 - Find assignments to this symbol
 Pattern: either supplied or the main selection
-        ' \
-        -params 1..2 \
-        cscope %{ %sh{
-            fatal() {
-                echo "echo -markup \"{Error}$*\""
-                exit
-            }
+    ' \
+    -params 1..2 \
+    cscope %{ evaluate-commands %sh{
+        fatal() {
+            echo "echo -markup \"{Error}$*\""
+            exit
+        }
 
-            qry="$1"
-            pat=${2:-$(echo "$kak_selection" | awk 'NR==1{print $1}')}
+        qry="$1"
+        pat=${2:-$(echo "$kak_selection" | awk 'NR==1{print $1}')}
 
-            res="$(cscope -d -L -${qry}${pat})"
-            [ $? -ne 0 ] && fatal "Error with query '$qry' and pattern '$pat'"
-            [ ! "$res" ] && fatal "No result for query '$qry' and pattern '$pat'"
+        res="$(cscope -d -L -${qry}${pat})"
+        [ $? -ne 0 ] && fatal "Error with query '$qry' and pattern '$pat'"
+        [ ! "$res" ] && fatal "No result for query '$qry' and pattern '$pat'"
 
-            printf 'menu -auto-single'
-            echo "$res" | while read line
-            do
-                printf " %%§%-${kak_window_width}.${kak_window_width}s§" "$line"
-                echo $line | awk '{printf " %%§edit! %s %s§", $1, $3}'
-            done
-            echo
-    }}
+        printf 'menu -auto-single'
+        echo "$res" | while read line
+        do
+            printf " %%§%-${kak_window_width}.${kak_window_width}s§" "$line"
+            echo $line | awk '{printf " %%§edit! %s %s§", $1, $3}'
+        done
+        echo
+}}
