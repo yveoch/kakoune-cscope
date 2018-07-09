@@ -1,4 +1,4 @@
-# kakoune-cscope 0.5
+# kakoune-cscope 0.6
 # Author: @dryvenn
 # License: MIT
 
@@ -11,6 +11,11 @@ Will default to current directory.
     ' \
     -params ..  -file-completion \
     cscope-index %{ evaluate-commands %sh{
+        fatal() {
+            echo "echo -markup \"{Error}$*\""
+            exit
+        }
+
         opts="-R -q -b"
         dirs="$*"
         dirs="${dirs:-$(cat cscope.dirs)}"
@@ -19,9 +24,12 @@ Will default to current directory.
         dirs=$(bash -c "echo $dirs")
 
         [ "$dirs" != "$(cat cscope.dirs)" ] && opts="$opts -u"
-        echo "$dirs" > cscope.dirs
 
         cscope $opts -s $(echo "$dirs" | sed 's/ / -s /g')
+
+        [ $? -ne 0 ] && fatal "Error indexing $dirs"
+
+        echo "$dirs" > cscope.dirs
 
         echo "echo Indexed $dirs"
     }}
@@ -45,6 +53,8 @@ Pattern: either supplied or the main selection
             echo "echo -markup \"{Error}$*\""
             exit
         }
+
+        [ ! -f "cscope.out" ] && fatal "Index not found"
 
         qry="$1"
         pat=${2:-$(echo "$kak_selection" | awk 'NR==1{print $1}')}
