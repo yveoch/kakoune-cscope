@@ -48,7 +48,7 @@ Query: a digit as below
 Pattern: either supplied or the main selection
     ' \
     -params 1..2 \
-    cscope %{ evaluate-commands %sh{
+    cscope %{ evaluate-commands -try-client %opt{jumpclient} %sh{
         fatal() {
             echo "echo -markup \"{Error}$*\""
             exit
