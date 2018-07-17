@@ -1,4 +1,4 @@
-# kakoune-cscope 0.6
+# kakoune-cscope 0.7
 # Author: @dryvenn
 # License: MIT
 
@@ -71,3 +71,11 @@ Pattern: either supplied or the main selection
         done
         echo
 }}
+
+define-command -docstring 'cscope-find: cscope function finder' \
+    -params 1 \
+    -shell-candidates %{ cscope -d -L -1 '.*' |
+                            sed -n 's/.*[ :]\([a-zA-Z0-9_]\+\)\s*(.*/\1/p' } \
+    cscope-find %{
+        cscope 1 %arg{1}
+    }
