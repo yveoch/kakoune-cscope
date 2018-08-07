@@ -1,4 +1,4 @@
-# kakoune-cscope 0.7
+# kakoune-cscope 0.8
 # Author: @dryvenn
 # License: MIT
 
@@ -79,3 +79,19 @@ define-command -docstring 'cscope-find: cscope function finder' \
     cscope-find %{
         cscope 1 %arg{1}
     }
+
+define-command -hidden \
+    -params 0..1 \
+    cscope-menu %{
+        info -title 'Query' \
+'0: Find this C symbol
+1: Find this function definition
+2: Find functions called by this function
+3: Find functions calling this function
+4: Find this text string
+6: Find this egrep pattern
+7: Find this file
+8: Find files #including this file
+9: Find assignments to this symbol'
+        on-key %{ cscope %val{key} %arg{1} }
+}
