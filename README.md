@@ -2,6 +2,8 @@
 
 Cscope integration for Kakoune. Beta. MIT-licensed.
 
+Supported Kakoune version: v2018.10.27
+
 ## How to use
 
 Put the main file into your [autoload directory](
